@@ -1,0 +1,9 @@
+numpy==1.19.5
+Flask
+flask_cors
+pytube
+deepspeech
+rq
+redis
+punctuator
+pydub
