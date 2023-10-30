@@ -164,3 +164,6 @@ cython_debug/
 
 # Windows Zone Identifier files
 *:Zone.Identifier
+
+# Redis DB dump
+dump.rdb
