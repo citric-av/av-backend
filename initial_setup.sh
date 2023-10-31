@@ -8,11 +8,11 @@ command_exists() {
 # Check if pyenv is installed
 if ! command_exists pyenv; then
     echo "Installing pyenv..."
-    # Install pyenv prerequisites (Ubuntu/Debian)
+    # Install project prerequisites and dependencies (Ubuntu/Debian)
     sudo apt-get update
     sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
         libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-        libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+        libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev redis-server ffmpeg
 
     # Install pyenv
     git clone https://github.com/pyenv/pyenv.git ~/.pyenv
