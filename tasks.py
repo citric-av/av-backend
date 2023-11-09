@@ -7,12 +7,24 @@ from pydub import AudioSegment
 import numpy as np
 import wave
 import requests
+from transformers import BartForConditionalGeneration, BartTokenizer
 
 # Load DeepSpeech model
 ds_model_path = 'assets/deepspeech-0.9.3-models.pbmm'
 ds_scorer_path = 'assets/deepspeech-0.9.3-models.scorer'
 ds_model = deepspeech.Model(ds_model_path)
 ds_model.enableExternalScorer(ds_scorer_path)
+
+# Load pre-trained model and tokenizer from Hugging Face
+model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
+tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
+
+def summarize(text):
+    inputs = tokenizer(text, max_length=1024, return_tensors='pt', truncation=True)
+    summary_ids = model.generate(inputs.input_ids)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
+
 
 # Load Punctuator model
 # punctuator_model = Punctuator('assets/punctuator-demo.pcl')
@@ -65,10 +77,17 @@ def transcribe(youtube_url):
     else:
         # Handle the error as appropriate for your application
         raise Exception("Failed to get punctuated text from remote service.")
-
+    
+    # Step 4: Summarize transcript
+    current_job.meta['status'] = 'summarizing transcript'
+    current_job.save_meta()
+    summary = summarize(punctuated_text)
 
     # Cleanup
     os.remove(audio_filename)
     os.remove(converted_audio_filename)
 
-    return punctuated_text
+    return {
+        'transcript': punctuated_text,  # This is the original transcript
+        'summary': summary              # This is the summarized text
+    }

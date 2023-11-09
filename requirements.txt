@@ -7,3 +7,5 @@ rq
 redis
 punctuator
 pydub
+transformers
+torch

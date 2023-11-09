@@ -20,7 +20,11 @@ def task_status(task_id):
     job = Job.fetch(task_id, connection=conn)
 
     if job.is_finished:
-        return jsonify({'state': 'SUCCESS', 'result': job.result, 'status': job.meta.get('status', 'unknown')}), 200
+        return jsonify({
+            'state': 'SUCCESS',
+            'result': job.result,
+            'status': job.meta.get('status', 'unknown')
+        }), 200
     elif job.is_failed:
         return jsonify({'state': 'FAILED', 'result': None, 'status': job.meta.get('status', 'unknown')}), 500
     else:
