@@ -5,9 +5,9 @@ command_exists() {
     type "$1" &> /dev/null
 }
 
-# Check if pyenv is installed
+# Check if pyenv is installed using its command
 if ! command_exists pyenv; then
-    echo "Installing pyenv..."
+    echo "Installing pyenv and other dependencies..."
     # Install project prerequisites and dependencies (Ubuntu/Debian)
     sudo apt-get update
     sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
@@ -20,7 +20,7 @@ if ! command_exists pyenv; then
     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
     echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bashrc
 
-    # Apply changes to current session
+    # Apply variables to current session
     export PYENV_ROOT="$HOME/.pyenv"
     export PATH="$PYENV_ROOT/bin:$PATH"
     eval "$(pyenv init -)"
@@ -53,7 +53,7 @@ pyenv local "$PYTHON_VERSION"
 # Activate the virtual environment
 source venv/bin/activate
 
-# Write down active Python location
+# Read active Python location
 ACTIVE_PYTHON=$(which python)
 
 # Install Python dependencies if virtual environment is active
