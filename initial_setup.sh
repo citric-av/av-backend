@@ -50,7 +50,17 @@ pyenv local "$PYTHON_VERSION"
 # Create a virtual environment using the specified Python version
 "${PYENV_ROOT}/versions/${PYTHON_VERSION}/bin/python" -m venv venv || { echo "Failed to create virtual environment"; exit 1; }
 
-echo "Setup completed. Virtual environment created in 'venv/'."
-echo "Run 'source venv/bin/activate' to activate the virtual environment."
+# Activate the virtual environment
+source venv/bin/activate
+
+# Write down active Python location
+ACTIVE_PYTHON=$(which python)
+
+# Install Python dependencies if virtual environment is active
+if [ -n "$ACTIVE_PYTHON" ] && [ "$ACTIVE_PYTHON" = "$(pwd)/venv/bin/python" ]; then
+    pip install -r requirements.txt
+fi
+
+# Display installation messages
+echo -e "\nSetup completed. Virtual environment ready in 'venv/'."
 echo "Note: You might need to restart your terminal or source your profile script for 'pyenv' changes to take effect."
-echo "After activating the virtual environment, install dependencies with 'pip install -r requirements.txt'."
