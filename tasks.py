@@ -1,23 +1,16 @@
 from pytube import YouTube
-import deepspeech
 from rq import get_current_job
 import os
-# from punctuator import Punctuator
 from pydub import AudioSegment
 import numpy as np
 import wave
 import requests
-from transformers import BartForConditionalGeneration, BartTokenizer
+from openai import OpenAI
+import whisper
 
-# Load DeepSpeech model
-ds_model_path = 'assets/deepspeech-0.9.3-models.pbmm'
-ds_scorer_path = 'assets/deepspeech-0.9.3-models.scorer'
-ds_model = deepspeech.Model(ds_model_path)
-ds_model.enableExternalScorer(ds_scorer_path)
-
-# Load pre-trained model and tokenizer from Hugging Face
-model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
-tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
+client = OpenAI(
+    api_key = ""
+)
 
 def summarize(text):
     inputs = tokenizer(text, max_length=1024, return_tensors='pt', truncation=True)
@@ -25,9 +18,15 @@ def summarize(text):
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     return summary
 
-
-# Load Punctuator model
-# punctuator_model = Punctuator('assets/punctuator-demo.pcl')
+def summariza_batonga(text):
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"Summarize a video according to this transcript: {text}"}
+        ]
+    )
+    return response.choices[0].message.content
 
 def load_wav_file(filename):
     with wave.open(filename, 'rb') as w:
@@ -56,38 +55,23 @@ def transcribe(youtube_url):
     audio_data, rate = load_wav_file(converted_audio_filename)
     audio_np = np.frombuffer(audio_data, dtype=np.int16)
 
-    # Step 2: Transcribe with DeepSpeech
+    # Step 2: Transcribe using Whisper
     current_job.meta['status'] = 'transcribing audio'
     current_job.save_meta()
-    transcript = ds_model.stt(audio_np)
-
-    # Step 3: Punctuate the transcript using the remote service
-    current_job.meta['status'] = 'punctuating transcript'
-    current_job.save_meta()
-
-    # Make the HTTP POST request
-    response = requests.post(
-        "http://bark.phon.ioc.ee/punctuator",
-        data={'text': transcript}
-    )
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        punctuated_text = response.text
-    else:
-        # Handle the error as appropriate for your application
-        raise Exception("Failed to get punctuated text from remote service.")
+    model = whisper.load_model("small")  # Choose the model size
+    result = model.transcribe(converted_audio_filename)
+    transcript = result["text"]
     
-    # Step 4: Summarize transcript
+    # Step 3: Summarize transcript
     current_job.meta['status'] = 'summarizing transcript'
     current_job.save_meta()
-    summary = summarize(punctuated_text)
+    summary = summariza_batonga(transcript)
 
     # Cleanup
     os.remove(audio_filename)
     os.remove(converted_audio_filename)
 
     return {
-        'transcript': punctuated_text,  # This is the original transcript
+        'transcript': transcript,  # This is the original transcript
         'summary': summary              # This is the summarized text
     }
