@@ -12,7 +12,10 @@ q = Queue(connection=conn)
 @app.route('/start_transcription', methods=['POST'])
 def start_transcription():
     youtube_url = request.json['youtube_url']
-    job = q.enqueue(transcribe, youtube_url)
+    length = request.json['summary_sentences']
+    keywords = request.json['keywords']
+    kw_analysis_length = request.json['keyword_analysis_sentences']
+    job = q.enqueue(transcribe, youtube_url, length, keywords, kw_analysis_length, job_timeout=600)
     return jsonify({'task_id': job.get_id()}), 202
 
 @app.route('/task_status/<task_id>', methods=['GET'])
