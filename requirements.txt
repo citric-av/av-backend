@@ -9,3 +9,4 @@ torch
 openai
 openai-whisper
 python-dotenv
+vaderSentiment

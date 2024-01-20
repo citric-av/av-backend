@@ -8,11 +8,12 @@ import wave
 import requests
 from openai import OpenAI
 import whisper
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 load_dotenv()
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-
+analyzer = SentimentIntensityAnalyzer()
 client = OpenAI(
     api_key = openai_api_key
 )
@@ -39,41 +40,33 @@ def filter_sentences_with_context(transcript, keywords):
     chunk = []
     chunk_start_time = None
     chunk_end_time = None
-
+    
     for i, sentence in enumerate(transcript):
         contains_keyword = any(keyword.lower() in sentence['text'].lower() for keyword in keywords_list)
 
         if contains_keyword:
+            sentiment = analyzer.polarity_scores(sentence['text'])
             if not chunk:
-                # Start a new chunk
                 chunk_start_time = transcript[i-1]['start'] if i > 0 else sentence['start']
                 if i > 0:
-                    chunk.append(transcript[i-1]['text'])
-
-            chunk.append(sentence['text'])
-
-            # Update chunk end time
+                    chunk.append({'text': transcript[i-1]['text'], 'sentiment': analyzer.polarity_scores(transcript[i-1]['text'])})
+            chunk.append({'text': sentence['text'], 'sentiment': sentiment})
             chunk_end_time = sentence['end']
-
         elif chunk:
-            # Add the next sentence and end the chunk
-            chunk.append(sentence['text'])
+            chunk.append({'text': sentence['text'], 'sentiment': analyzer.polarity_scores(sentence['text'])})
             chunk_end_time = sentence['end']
-
-            # Combine chunk into text and add ellipses
-            chunk_text = '... ' + ' '.join(chunk) + ' ...'
-            filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
-
-            # Reset for the next chunk
+            chunk_text = '... ' + ' '.join([c['text'] for c in chunk]) + ' ...'
+            chunk_sentiments = [c['sentiment'] for c in chunk]
+            filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time, "sentiments": chunk_sentiments})
             chunk = []
             chunk_start_time = None
             chunk_end_time = None
 
-    # Handle case where transcript ends with a keyword sentence
     if chunk:
-        chunk_text = '... ' + ' '.join(chunk) + ' ...'
+        chunk_text = '... ' + ' '.join([c['text'] for c in chunk]) + ' ...'
         chunk_end_time = chunk_end_time if chunk_end_time else transcript[-1]['end']
-        filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
+        chunk_sentiments = [c['sentiment'] for c in chunk]
+        filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time, "sentiments": chunk_sentiments})
 
     return filtered_sentences
 
