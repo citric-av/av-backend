@@ -96,7 +96,8 @@ def transcribe(youtube_url, length, keywords, kw_analysis_length):
         audio_filename = audio_stream.default_filename
         audio_stream.download(filename=audio_filename)
     except Exception as e:
-        if 'match' in str(e).lower():
+        error_str = str(e).lower()
+        if 'match' in error_str or 'unavailable' in error_str:
             error_message = "The provided video link is invalid. Please check the link and try again."
         else:
             error_message = f"An error occurred while downloading the video: {e}"

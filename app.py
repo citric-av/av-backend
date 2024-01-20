@@ -29,7 +29,7 @@ def task_status(task_id):
             'status': job.meta.get('status', 'unknown')
         }), 200
     elif job.is_failed:
-        return jsonify({'state': 'FAILED', 'result': None, 'status': job.meta.get('status', 'unknown')}), 500
+        return jsonify({'state': 'FAILED', 'result': None, 'status': job.meta.get('status', 'unknown')}), 406
     else:
         return jsonify({'state': 'PENDING', 'result': None, 'status': job.meta.get('status', 'unknown')}), 202
 
