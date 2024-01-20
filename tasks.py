@@ -27,6 +27,13 @@ def summariza_batonga(text, length, keywords, kw_analysis_length):
     )
     return response.choices[0].message.content
 
+def analyze_sentiments(filtered_sentences):
+    sentiment_results = []
+    for sentence in filtered_sentences:
+        sentiment = analyzer.polarity_scores(sentence['text'])
+        sentiment_results.append({'text': sentence['text'], 'sentiment': sentiment})
+    return sentiment_results
+
 def filter_sentences_with_context(transcript, keywords):
     keywords_list = keywords.split(', ')
     filtered_sentences = []
@@ -38,28 +45,26 @@ def filter_sentences_with_context(transcript, keywords):
         contains_keyword = any(keyword.lower() in sentence['text'].lower() for keyword in keywords_list)
 
         if contains_keyword:
-            sentiment = analyzer.polarity_scores(sentence['text'])
             if not chunk:
                 chunk_start_time = transcript[i-1]['start'] if i > 0 else sentence['start']
                 if i > 0:
-                    chunk.append({'text': transcript[i-1]['text'], 'sentiment': analyzer.polarity_scores(transcript[i-1]['text'])})
-            chunk.append({'text': sentence['text'], 'sentiment': sentiment})
+                    chunk.append(transcript[i-1]['text'])
+            chunk.append(sentence['text'])
             chunk_end_time = sentence['end']
+
         elif chunk:
-            chunk.append({'text': sentence['text'], 'sentiment': analyzer.polarity_scores(sentence['text'])})
+            chunk.append(sentence['text'])
             chunk_end_time = sentence['end']
-            chunk_text = '... ' + ' '.join([c['text'] for c in chunk]) + ' ...'
-            chunk_sentiments = [c['sentiment'] for c in chunk]
-            filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time, "sentiments": chunk_sentiments})
+            chunk_text = '... ' + ' '.join(chunk) + ' ...'
+            filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
             chunk = []
             chunk_start_time = None
             chunk_end_time = None
 
     if chunk:
-        chunk_text = '... ' + ' '.join([c['text'] for c in chunk]) + ' ...'
+        chunk_text = '... ' + ' '.join(chunk) + ' ...'
         chunk_end_time = chunk_end_time if chunk_end_time else transcript[-1]['end']
-        chunk_sentiments = [c['sentiment'] for c in chunk]
-        filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time, "sentiments": chunk_sentiments})
+        filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
 
     return filtered_sentences
 
@@ -99,6 +104,8 @@ def transcribe(youtube_url, length, keywords, kw_analysis_length):
         transcript_sentences = result["segments"]
         transcript_timestamped = [{'start': int(entry['start']), 'end': int(entry['end']), 'text': entry['text'].strip()} for entry in transcript_sentences]
         transcript_filtered = filter_sentences_with_context(transcript_timestamped, keywords)
+        # Step 2.5: Get Sentiment
+        sentiment_results = analyze_sentiments(transcript_filtered)
     except Exception as e:
         error_message = f"An error occurred while transcribing audio: {e}"
         current_job.meta['status'] = error_message
@@ -130,5 +137,6 @@ def transcribe(youtube_url, length, keywords, kw_analysis_length):
         'transcript': transcript,
         'transcript_timestamped': transcript_timestamped,
         'transcript_filtered': transcript_filtered,
-        'summary': summary
+        'summary': summary,
+        'sentiment_analysis': sentiment_results 
     }
