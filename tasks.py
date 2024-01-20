@@ -3,9 +3,6 @@ from rq import get_current_job
 import os
 from dotenv import load_dotenv
 from pydub import AudioSegment
-import numpy as np
-import wave
-import requests
 from openai import OpenAI
 import whisper
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -13,16 +10,12 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 load_dotenv()
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-analyzer = SentimentIntensityAnalyzer()
+
 client = OpenAI(
     api_key = openai_api_key
 )
 
-def summarize(text):
-    inputs = tokenizer(text, max_length=1024, return_tensors='pt', truncation=True)
-    summary_ids = model.generate(inputs.input_ids)
-    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-    return summary
+analyzer = SentimentIntensityAnalyzer()
 
 def summariza_batonga(text, length, keywords, kw_analysis_length):
     response = client.chat.completions.create(
@@ -70,13 +63,6 @@ def filter_sentences_with_context(transcript, keywords):
 
     return filtered_sentences
 
-def load_wav_file(filename):
-    with wave.open(filename, 'rb') as w:
-        rate = w.getframerate()
-        frames = w.getnframes()
-        buffer = w.readframes(frames)
-    return buffer, rate
-
 def transcribe(youtube_url, length, keywords, kw_analysis_length):
     current_job = get_current_job()
 
@@ -101,13 +87,8 @@ def transcribe(youtube_url, length, keywords, kw_analysis_length):
     try:
         # Convert the audio to the desired format
         audio = AudioSegment.from_file(audio_filename, format="mp4")
-        converted_audio_filename = "converted_audio.wav"
+        converted_audio_filename = audio_filename + "_converted.wav"
         audio.set_channels(1).set_frame_rate(16000).export(converted_audio_filename, format="wav")
-
-        # Load the WAV file
-        # Assume load_wav_file is a defined function
-        audio_data, rate = load_wav_file(converted_audio_filename)
-        audio_np = np.frombuffer(audio_data, dtype=np.int16)
 
         # Step 2: Transcribe using Whisper
         current_job.meta['status'] = 'Transcribing audio... This may take a while.'
