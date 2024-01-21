@@ -10,3 +10,4 @@ openai
 openai-whisper
 python-dotenv
 vaderSentiment
+pytest

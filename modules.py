@@ -6,21 +6,21 @@ from openai import OpenAI
 import whisper
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-def filter_sentences_with_context(transcript, keywords):
+def filter_sentences_with_context(transcript_timestamped, keywords):
     keywords_list = keywords.split(', ')
     filtered_sentences = []
     chunk = []
     chunk_start_time = None
     chunk_end_time = None
     
-    for i, sentence in enumerate(transcript):
+    for i, sentence in enumerate(transcript_timestamped):
         contains_keyword = any(keyword.lower() in sentence['text'].lower() for keyword in keywords_list)
 
         if contains_keyword:
             if not chunk:
-                chunk_start_time = transcript[i-1]['start'] if i > 0 else sentence['start']
+                chunk_start_time = transcript_timestamped[i-1]['start'] if i > 0 else sentence['start']
                 if i > 0:
-                    chunk.append(transcript[i-1]['text'])
+                    chunk.append(transcript_timestamped[i-1]['text'])
             chunk.append(sentence['text'])
             chunk_end_time = sentence['end']
 
@@ -35,7 +35,7 @@ def filter_sentences_with_context(transcript, keywords):
 
     if chunk:
         chunk_text = '... ' + ' '.join(chunk) + ' ...'
-        chunk_end_time = chunk_end_time if chunk_end_time else transcript[-1]['end']
+        chunk_end_time = chunk_end_time if chunk_end_time else transcript_timestamped[-1]['end']
         filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
 
     return filtered_sentences
@@ -60,7 +60,7 @@ def transcribe_audio(converted_audio_filename, keywords):
     model = whisper.load_model("small")  # Choose the model size
     result = model.transcribe(converted_audio_filename)
     transcript = result["text"]
-    transcript_sentences = result["segments"]
+    transcript_sentences = result["segments"] # Transcript with all available parameters per sentence
     transcript_timestamped = [{'start': int(entry['start']), 'end': int(entry['end']), 'text': entry['text'].strip()} for entry in transcript_sentences]
     transcript_filtered = filter_sentences_with_context(transcript_timestamped, keywords)
     return transcript, transcript_timestamped, transcript_filtered
@@ -78,11 +78,9 @@ def analyze_sentiments(filtered_sentences):
 def summariza_batonga(text, length, keywords, kw_analysis_length):
     load_dotenv()
     openai_api_key = os.getenv('OPENAI_API_KEY')
-    client = OpenAI(
-    api_key = openai_api_key
-)
+    client = OpenAI(api_key = openai_api_key)
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-1106",
         messages=[
             {"role": "system", "content": "You are a helpful video transcriber tool."},
             {"role": "user", "content": f"Summarize the following video transcript in a strict length of {length} sentences: {text}. In the summary, avoid specifying the speaker's identity and use gender-neutral pronouns like 'they' or 'them'. After the summary, analyze how the following keywords are discussed in the video: {keywords}. Provide a separate analysis for each keyword, limited to {kw_analysis_length} sentences per keyword. Ensure there is a break between the analysis of different keywords."}
