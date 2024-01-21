@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rq import Queue, get_current_job
+from rq import Queue
 from rq.job import Job
 from worker import conn
-from tasks import transcribe
+from tasks import analyze_yt_video
 
 app = Flask(__name__)
 CORS(app)
@@ -15,7 +15,7 @@ def start_transcription():
     length = request.json['summary_sentences']
     keywords = request.json['keywords']
     kw_analysis_length = request.json['keyword_analysis_sentences']
-    job = q.enqueue(transcribe, youtube_url, length, keywords, kw_analysis_length, job_timeout=600)
+    job = q.enqueue(analyze_yt_video, youtube_url, length, keywords, kw_analysis_length, job_timeout=600)
     return jsonify({'task_id': job.get_id()}), 202
 
 @app.route('/task_status/<task_id>', methods=['GET'])
@@ -31,7 +31,7 @@ def task_status(task_id):
     elif job.is_failed:
         return jsonify({'state': 'FAILED', 'result': None, 'status': job.meta.get('status', 'unknown')}), 406
     else:
-        return jsonify({'state': 'PENDING', 'result': None, 'status': job.meta.get('status', 'unknown')}), 202
+        return jsonify({'state': 'PENDING', 'result': None, 'status': job.meta.get('status', 'Waiting for the server...')}), 202
 
 if __name__ == '__main__':
     app.run(debug=True)

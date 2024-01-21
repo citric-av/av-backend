@@ -1,84 +1,15 @@
-from pytube import YouTube
 from rq import get_current_job
 import os
-from dotenv import load_dotenv
-from pydub import AudioSegment
-from openai import OpenAI
-import whisper
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from modules import download_yt_audio, convert_audio, transcribe_audio, summariza_batonga, analyze_sentiments
 
-load_dotenv()
-
-openai_api_key = os.getenv('OPENAI_API_KEY')
-
-client = OpenAI(
-    api_key = openai_api_key
-)
-
-analyzer = SentimentIntensityAnalyzer()
-
-def summariza_batonga(text, length, keywords, kw_analysis_length):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful video transcriber tool."},
-            {"role": "user", "content": f"Summarize the following video transcript in a strict length of {length} sentences: {text}. In the summary, avoid specifying the speaker's identity and use gender-neutral pronouns like 'they' or 'them'. After the summary, analyze how the following keywords are discussed in the video: {keywords}. Provide a separate analysis for each keyword, limited to {kw_analysis_length} sentences per keyword. Ensure there is a break between the analysis of different keywords."}
-        ]
-    )
-    return response.choices[0].message.content
-
-def analyze_sentiments(filtered_sentences):
-    sentiment_results = []
-    for sentence in filtered_sentences:
-        sentiment = analyzer.polarity_scores(sentence['text'])
-        sentiment_results.append({'text': sentence['text'], 'sentiment': sentiment})
-    return sentiment_results
-
-def filter_sentences_with_context(transcript, keywords):
-    keywords_list = keywords.split(', ')
-    filtered_sentences = []
-    chunk = []
-    chunk_start_time = None
-    chunk_end_time = None
-    
-    for i, sentence in enumerate(transcript):
-        contains_keyword = any(keyword.lower() in sentence['text'].lower() for keyword in keywords_list)
-
-        if contains_keyword:
-            if not chunk:
-                chunk_start_time = transcript[i-1]['start'] if i > 0 else sentence['start']
-                if i > 0:
-                    chunk.append(transcript[i-1]['text'])
-            chunk.append(sentence['text'])
-            chunk_end_time = sentence['end']
-
-        elif chunk:
-            chunk.append(sentence['text'])
-            chunk_end_time = sentence['end']
-            chunk_text = '... ' + ' '.join(chunk) + ' ...'
-            filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
-            chunk = []
-            chunk_start_time = None
-            chunk_end_time = None
-
-    if chunk:
-        chunk_text = '... ' + ' '.join(chunk) + ' ...'
-        chunk_end_time = chunk_end_time if chunk_end_time else transcript[-1]['end']
-        filtered_sentences.append({"text": chunk_text, "start": chunk_start_time, "end": chunk_end_time})
-
-    return filtered_sentences
-
-def transcribe(youtube_url, length, keywords, kw_analysis_length):
+def analyze_yt_video(youtube_url, length, keywords, kw_analysis_length):
     current_job = get_current_job()
-
-    try:
-        # Step 1: Download audio
-        current_job.meta['status'] = 'Downloading audio...'
-        current_job.save_meta()
-        yt = YouTube(youtube_url)
-        audio_stream = yt.streams.filter(only_audio=True).first()
-        audio_filename = audio_stream.default_filename
-        audio_stream.download(filename=audio_filename)
+    
+    # Step 1: Download audio
+    current_job.meta['status'] = 'Downloading audio...'
+    current_job.save_meta()
+    try:  
+        audio_filename = download_yt_audio(youtube_url)
     except Exception as e:
         error_str = str(e).lower()
         if 'match' in error_str or 'unavailable' in error_str:
@@ -89,31 +20,39 @@ def transcribe(youtube_url, length, keywords, kw_analysis_length):
         current_job.save_meta()
         raise RuntimeError(error_message)
 
+    # Step 2: Convert audio to WAV
+    current_job.meta['status'] = 'Converting audio...'
+    current_job.save_meta()
     try:
-        # Convert the audio to the desired format
-        audio = AudioSegment.from_file(audio_filename, format="mp4")
-        converted_audio_filename = audio_filename + "_converted.wav"
-        audio.set_channels(1).set_frame_rate(16000).export(converted_audio_filename, format="wav")
-
-        # Step 2: Transcribe using Whisper
-        current_job.meta['status'] = 'Transcribing audio... This may take a while.'
+        converted_audio_filename = convert_audio(audio_filename)
+    except Exception as e:
+        error_message = f"An error occurred while converting the audio: {e}"
+        current_job.meta['status'] = error_message
         current_job.save_meta()
-        model = whisper.load_model("small")  # Choose the model size
-        result = model.transcribe(converted_audio_filename)
-        transcript = result["text"]
-        transcript_sentences = result["segments"]
-        transcript_timestamped = [{'start': int(entry['start']), 'end': int(entry['end']), 'text': entry['text'].strip()} for entry in transcript_sentences]
-        transcript_filtered = filter_sentences_with_context(transcript_timestamped, keywords)
-        # Step 2.5: Get Sentiment
-        sentiment_results = analyze_sentiments(transcript_filtered)
+        raise RuntimeError(error_message)
+
+    # Step 3: Transcribe audio
+    current_job.meta['status'] = 'Transcribing audio... This may take a while.'
+    current_job.save_meta()
+    try:
+        transcript, transcript_timestamped, transcript_filtered = transcribe_audio(converted_audio_filename, keywords)
     except Exception as e:
         error_message = f"An error occurred while transcribing audio: {e}"
         current_job.meta['status'] = error_message
         current_job.save_meta()
         raise RuntimeError(error_message)
 
+    # Step 4: Analyze sentiment
     try:
-        # Step 3: Summarize transcript
+        sentiment_results = analyze_sentiments(transcript_filtered)
+    except Exception as e:
+        error_message = f"An error occurred while analyzing sentiment: {e}"
+        current_job.meta['status'] = error_message
+        current_job.save_meta()
+        raise RuntimeError(error_message)
+
+    # Step 5: Summarize transcript
+    try:
         current_job.meta['status'] = 'Summarizing transcript...'
         current_job.save_meta()
         summary = summariza_batonga(transcript, length, keywords, kw_analysis_length)
@@ -134,9 +73,8 @@ def transcribe(youtube_url, length, keywords, kw_analysis_length):
     current_job.save_meta()
 
     return {
-        'transcript': transcript,
         'transcript_timestamped': transcript_timestamped,
         'transcript_filtered': transcript_filtered,
-        'summary': summary,
-        'sentiment_analysis': sentiment_results 
+        'sentiment_analysis': sentiment_results,
+        'summary': summary
     }
