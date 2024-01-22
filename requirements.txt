@@ -11,3 +11,6 @@ openai-whisper
 python-dotenv
 vaderSentiment
 pytest
+fuzzywuzzy
+python-Levenshtein
+speedtest-cli
