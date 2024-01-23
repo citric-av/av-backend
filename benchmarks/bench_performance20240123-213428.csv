@@ -1,0 +1,16 @@
+Metric,Raw Data,Calculated Estimate
+Download Speed (Mbps),663.56,
+Upload Speed (Mbps),571.76,
+Ping (ms),14.50,
+Download Time for Video (s),1.51045560836792,212 seconds video
+Estimated Download Time for 1 Min of Audio (s),,0.4274874363305433
+Estimated Download Time for 1 Hour of Audio (s),,25.6492461798326
+Transcription Time (s),67.90308022499084,
+Total Words in Transcript,487,
+Words Per Minute,,430.3192123712521
+Estimated Time for 1000 Words (s),,139.43137623201403
+Summarization Time (s),6.57548189163208,for 3 sentences
+Estimated Time for Summarizing 1000 Words (s),,13.502016204583326
+Summary Length (sentences),3,
+Keyword Count,1,
+Sentences per Keyword,2,
