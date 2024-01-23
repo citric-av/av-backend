@@ -28,7 +28,9 @@ def main(args):
     os.system("clear")
 
     print(make_bold("\n🖥️ System specs:\n"))
-    cpu_brand, cpu_base_clock, cpu_cores, cpu_threads, ram_total, gpu_name, gpu_memory = get_system_info()
+    cpu_brand, cpu_base_clock, cpu_cores, cpu_threads = get_cpu_info()
+    ram_total = get_ram_info()
+    gpu_name, gpu_memory = get_gpu_info()
     print(f"CPU: {make_bold(cpu_brand)} @ {make_bold(cpu_base_clock)}")
     print(f"CPU Cores: {make_bold(cpu_cores)} physical, {make_bold(cpu_threads)} logical")
     print(f"GPU: {make_bold(gpu_name)}")
@@ -253,20 +255,53 @@ def export_to_csv(folder_path, filename, download_speed, upload_speed, ping, dow
 def get_system_info():
     try:
         cpu = cpuinfo.get_cpu_info()
-        ram = psutil.virtual_memory()
-        gpu = GPUtil.getGPUs()[0]
         cpu_brand = cpu.get("brand_raw", "N/A")
         cpu_base_clock = cpu.get("hz_advertised_friendly", "N/A")
         cpu_cores = psutil.cpu_count(logical=False)
         cpu_threads = psutil.cpu_count(logical=True)
+
+        ram = psutil.virtual_memory()
         ram_total = f"{ram.total/1024/1024:.2f}"
+
+        gpu = GPUtil.getGPUs()[0]
         gpu_name = gpu.name
         gpu_memory = gpu.memoryTotal
+
         return cpu_brand, cpu_base_clock, cpu_cores, cpu_threads, ram_total, gpu_name, gpu_memory
     except Exception as e:
         print(f"Error: Could not get system specs - {e}")
-        return
+        return 
     
+def get_cpu_info():
+    try:
+        cpu = cpuinfo.get_cpu_info()
+        cpu_brand = cpu.get("brand_raw", "N/A")
+        cpu_base_clock = cpu.get("hz_advertised_friendly", "N/A")
+        cpu_cores = psutil.cpu_count(logical=False)
+        cpu_threads = psutil.cpu_count(logical=True)
+        return cpu_brand, cpu_base_clock, cpu_cores, cpu_threads
+    except Exception as e:
+        print(f"Error: Could not get CPU info - {e}")
+        return "N/A", "N/A", "N/A", "N/A"
+    
+def get_ram_info():
+    try:
+        ram = psutil.virtual_memory()
+        ram_total = f"{ram.total/1024/1024:.2f}"
+        return ram_total
+    except Exception as e:
+        print(f"Error: Could not get RAM info - {e}")
+        return "N/A"
+    
+def get_gpu_info():
+    try:
+        gpu = GPUtil.getGPUs()[0]
+        gpu_name = gpu.name
+        gpu_memory = gpu.memoryTotal
+        return gpu_name, gpu_memory
+    except Exception as e:
+        print(f"Error: Could not get GPU info - {e}")
+        return "N/A", "N/A"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This a performance benchmark script for YouTube video analysis.")

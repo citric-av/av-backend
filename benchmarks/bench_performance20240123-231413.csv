@@ -1,0 +1,23 @@
+Metric,Raw Data,Calculated Estimate
+Download Speed (Mbps),505.8,
+Upload Speed (Mbps),298.51,
+Ping (ms),11.98,
+Download Time for Video (s),1.4219627380371094,81 seconds video
+Estimated Download Time for 1 Min of Audio (s),,1.0533057318793402
+Estimated Download Time for 1 Hour of Audio (s),,63.198343912760414
+Transcription Time (s),69.8856303691864,
+Total Words in Transcript,152,
+Words Per Minute,,130.49893020670442
+Estimated Time for 1000 Words (s),,459.77388400780535
+Summarization Time (s),5.376243352890015,for 3 sentences
+Estimated Time for Summarizing 1000 Words (s),,35.37002205848694
+Summary Length (sentences),3,
+Keyword Count,1,
+Sentences per Keyword,2,
+CPU Name,AMD Ryzen 7 4800H with Radeon Graphics,
+CPU Base Clock,2.8945 GHz,
+CPU Cores,8,
+CPU Threads,16,
+RAM Total (MB),7878.32,
+GPU Name,NVIDIA GeForce RTX 2060,
+GPU Memory (MB),6144.0,
