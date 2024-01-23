@@ -167,3 +167,6 @@ cython_debug/
 
 # Redis DB dump
 dump.rdb
+
+# Benchmark folder
+benchmark/
