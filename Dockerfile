@@ -1,20 +1,27 @@
-# Use an official Python runtime as a parent image
-FROM python:3.8
+# Stage 1: Base image with dependencies
+FROM python:3.9.18-bullseye as base
 
-# Set the working directory in the container
 WORKDIR /usr/src/app
 
-# Copy the current directory contents into the container at /usr/src/app
-COPY . .
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    make build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+    libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install any needed packages specified in requirements.txt
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 5000 available to the world outside this container
-EXPOSE 5000
-
-# Define environment variable
+# Stage 2: Setup for Flask app
+FROM base as flask-app
+COPY . .
 ENV FLASK_APP=app.py
-
-# Run app.py when the container launches
+EXPOSE 5000
 CMD ["flask", "run", "--host=0.0.0.0"]
+
+# Stage 3: Setup for Worker
+FROM base as worker
+COPY . .
+CMD ["python", "worker.py"]

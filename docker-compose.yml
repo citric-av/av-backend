@@ -1,8 +1,35 @@
-version: '3'
+version: '3.8'
+
 services:
-  backend:
-    build: .
+  web:
+    build:
+      context: .
+      target: flask-app
     ports:
       - "5000:5000"
+    volumes:
+      - .:/usr/src/app
+      - dependencies:/usr/src/app
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  worker:
+    build:
+      context: .
+      target: worker
+    volumes:
+      - dependencies:/usr/src/app
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+
   redis:
     image: "redis:alpine"
+    ports:
+      - "6379:6379"
+
+volumes:
+  dependencies:
