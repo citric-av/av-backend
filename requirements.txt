@@ -14,3 +14,7 @@ pytest
 fuzzywuzzy
 python-Levenshtein
 speedtest-cli
+python-dotenv
+psutil
+py-cpuinfo
+gputil
