@@ -135,6 +135,9 @@ def check_endpoints():
         url = "https://api.openai.com/v1/models/gpt-3.5-turbo-1106"
         load_dotenv()
         openai_api_key = os.getenv('OPENAI_API_KEY')
+        if openai_api_key is None:
+            print("\nError: OpenAI API key not found.\nPlease set your OpenAI API key in the .env file.\n")
+            exit(1)
         headers = {
             "Authorization": f"Bearer {openai_api_key}"
         }
