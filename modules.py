@@ -75,15 +75,26 @@ def analyze_sentiments(filtered_sentences):
     return sentiment_results
 
 # Summarization Module
-def summariza_batonga(text, length, keywords, kw_analysis_length):
+def summarize_batonga(text, length, keywords, kw_analysis_length):
     load_dotenv()
     openai_api_key = os.getenv('OPENAI_API_KEY')
-    client = OpenAI(api_key = openai_api_key)
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
-        messages=[
-            {"role": "system", "content": "You are a helpful video transcriber tool."},
-            {"role": "user", "content": f"Summarize the following video transcript in a strict length of {length} sentences: {text}. In the summary, avoid specifying the speaker's identity and use gender-neutral pronouns like 'they' or 'them'. After the summary, analyze how the following keywords are discussed in the video: {keywords}. Provide a separate analysis for each keyword, limited to {kw_analysis_length} sentences per keyword. Ensure there is a break between the analysis of different keywords."}
-        ]
-    )
+    client = OpenAI(api_key=openai_api_key)
+
+    if keywords:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",
+            messages=[
+                {"role": "system", "content": "You are a helpful video transcriber tool."},
+                {"role": "user", "content": f"Summarize the following video transcript in a strict length of {length} sentences: {text}. In the summary, avoid specifying the speaker's identity and use gender-neutral pronouns like 'they' or 'them'. After the summary, analyze how the following keywords are discussed in the video: {keywords}. Provide a separate analysis for each keyword, limited to {kw_analysis_length} sentences per keyword. Ensure there is a break between the analysis of different keywords."}
+            ]
+        )
+    else:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",
+            messages=[
+                {"role": "system", "content": "You are a helpful video transcriber tool."},
+                {"role": "user", "content": f"Summarize the following video transcript in a strict length of {length} sentences: {text}. In the summary, avoid specifying the speaker's identity and use gender-neutral pronouns like 'they' or 'them'."}
+            ]
+        )
+
     return response.choices[0].message.content
