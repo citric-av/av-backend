@@ -75,7 +75,7 @@ def analyze_sentiments(filtered_sentences):
     return sentiment_results
 
 # Summarization Module
-def summarize_batonga(text, length, keywords, kw_analysis_length):
+def summariza_batonga(text, length, keywords, kw_analysis_length):
     load_dotenv()
     openai_api_key = os.getenv('OPENAI_API_KEY')
     client = OpenAI(api_key=openai_api_key)
