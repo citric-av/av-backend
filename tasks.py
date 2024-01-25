@@ -43,13 +43,16 @@ def analyze_yt_video(youtube_url, length, keywords, kw_analysis_length):
         raise RuntimeError(error_message)
 
     # Step 4: Analyze sentiment
-    try:
-        sentiment_results = analyze_sentiments(transcript_filtered)
-    except Exception as e:
-        error_message = f"An error occurred while analyzing sentiment: {e}"
-        current_job.meta['status'] = error_message
-        current_job.save_meta()
-        raise RuntimeError(error_message)
+    if keywords:
+        try:
+            current_job.meta['status'] = 'Extracting sentiment...'
+            current_job.save_meta()
+            sentiment_results = analyze_sentiments(transcript_filtered)
+        except Exception as e:
+            error_message = f"An error occurred while analyzing sentiment: {e}"
+            current_job.meta['status'] = error_message
+            current_job.save_meta()
+            raise RuntimeError(error_message)
 
     # Step 5: Summarize transcript
     try:
@@ -64,6 +67,11 @@ def analyze_yt_video(youtube_url, length, keywords, kw_analysis_length):
         current_job.meta['status'] = error_message
         current_job.save_meta()
         raise RuntimeError(error_message)
+
+    # Return empty sentiment results if no keywords were provided
+    if not keywords:
+        sentiment_results = None
+        transcript_filtered = None
 
     # Cleanup
     os.remove(audio_filename)
