@@ -170,3 +170,6 @@ dump.rdb
 
 # Benchmark folder
 benchmarks/
+
+# DS Store file
+.DS_Store
